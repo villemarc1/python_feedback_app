@@ -7,7 +7,9 @@ stores = [{
     'items': [{'name':'my item', 'price': 15.99 }]
 }]
 
+
 @app.route('/')
 def home():
-  return '<h1> teste </h1>'
-app.run()
+  return render_template('index.html')
+
+app.run(port=5000)

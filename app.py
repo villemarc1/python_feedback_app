@@ -1,61 +1,66 @@
-from flask import Flask, render_template, request
-from flask_sqlalchemy import SQLAlchemy
-from send_mail import send_mail
+from flask import Flask,jsonify,request,render_template
 
 app = Flask(__name__)
 
-ENV = 'dev'
-
-if ENV == 'dev':
-    app.debug = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = ''
-else:
-    app.debug = False
-    app.config['SQLALCHEMY_DATABASE_URI'] = ''
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-
-class Feedback(db.Model):
-    __tablename__ = 'feedback'
-    id = db.Column(db.Integer, primary_key=True)
-    customer = db.Column(db.String(200), unique=True)
-    dealer = db.Column(db.String(200))
-    rating = db.Column(db.Integer)
-    comments = db.Column(db.Text())
-
-    def __init__(self, customer, dealer, rating, comments):
-        self.customer = customer
-        self.dealer = dealer
-        self.rating = rating
-        self.comments = comments
-
+stores = [{
+    'name': 'My Store',
+    'items': [{'name':'my item', 'price': 15.99 }]
+}]
 
 @app.route('/')
-def index():
-    return render_template('index.html')
+def home():
+  return render_template('index.html')
 
+#post /store data: {name :}
+@app.route('/store' , methods=['POST'])
+def create_store():
+  request_data = request.get_json()
+  new_store = {
+    'name':request_data['name'],
+    'items':[]
+  }
+  stores.append(new_store)
+  return jsonify(new_store)
+  #pass
 
-@app.route('/submit', methods=['POST'])
-def submit():
-    if request.method == 'POST':
-        customer = request.form['customer']
-        dealer = request.form['dealer']
-        rating = request.form['rating']
-        comments = request.form['comments']
-        # print(customer, dealer, rating, comments)
-        if customer == '' or dealer == '':
-            return render_template('index.html', message='Please enter required fields')
-        if db.session.query(Feedback).filter(Feedback.customer == customer).count() == 0:
-            data = Feedback(customer, dealer, rating, comments)
-            db.session.add(data)
-            db.session.commit()
-            send_mail(customer, dealer, rating, comments)
-            return render_template('success.html')
-        return render_template('index.html', message='You have already submitted feedback')
+#get /store/<name> data: {name :}
+@app.route('/store/<string:name>')
+def get_store(name):
+  for store in stores:
+    if store['name'] == name:
+          return jsonify(store)
+  return jsonify ({'message': 'store not found'})
+  #pass
 
+#get /store
+@app.route('/store')
+def get_stores():
+  return jsonify({'stores': stores})
+  #pass
 
-if __name__ == '__main__':
-    app.run(500)
+#post /store/<name> data: {name :}
+@app.route('/store/<string:name>/item' , methods=['POST'])
+def create_item_in_store(name):
+  request_data = request.get_json()
+  for store in stores:
+    if store['name'] == name:
+        new_item = {
+            'name': request_data['name'],
+            'price': request_data['price']
+        }
+        store['items'].append(new_item)
+        return jsonify(new_item)
+  return jsonify ({'message' :'store not found'})
+  #pass
+
+#get /store/<name>/item data: {name :}
+@app.route('/store/<string:name>/item')
+def get_item_in_store(name):
+  for store in stores:
+    if store['name'] == name:
+        return jsonify( {'items':store['items'] } )
+  return jsonify ({'message':'store not found'})
+
+  #pass
+
+app.run(port=5000)

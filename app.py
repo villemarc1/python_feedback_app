@@ -10,4 +10,4 @@ stores = [{
 @app.route('/')
 def home():
   return '<h1> teste </h1>'
-app.run(port=5000)
+app.run()
